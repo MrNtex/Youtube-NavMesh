@@ -79,7 +79,7 @@ public class AgentMovement : MonoBehaviour
         {
             // We are idle, travel to random positions nearly in hope of finding the target
             Vector3 randomDirection = idleDefaultPosition + (Random.insideUnitSphere * searchRadius);
-            Debug.Log(randomDirection);
+            randomDirection = new Vector3(randomDirection.x, transform.position.y, randomDirection.z);
             navMeshAgent.destination = randomDirection;
         }
 
