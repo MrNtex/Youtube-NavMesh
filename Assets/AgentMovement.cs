@@ -5,9 +5,11 @@ using UnityEngine.AI;
 
 public enum EnemyState
 {
-    Idle,
+    PassiveGoing,
+    PassiveAction,
     ActivelyChasing,
     Searching,
+    SearchingPassive,
     meleeAttack,
 }
 public class AgentMovement : MonoBehaviour
@@ -22,6 +24,12 @@ public class AgentMovement : MonoBehaviour
 
     // To store the ray's direction for drawing Gizmos
     private Vector3 lastRayDirection, idleDefaultPosition;
+
+    [SerializeField]
+    private float serachTime = 5;
+    [SerializeField]
+    private int maxSearchCount = 3;
+    Vector3 randomDirection;
 
     public EnemyState currentState;
     void Start()
@@ -72,20 +80,35 @@ public class AgentMovement : MonoBehaviour
             if(Vector3.Distance(transform.position, navMeshAgent.destination) < 1.2f)
             {
                 // We have reached the last known position, so stop searching
-                currentState = EnemyState.Idle;
+                currentState = EnemyState.SearchingPassive;
                 idleDefaultPosition = transform.position;
+                StartCoroutine(findNewAreas());
             }
-        }else if(currentState == EnemyState.Idle && Vector3.Distance(transform.position, navMeshAgent.destination) > 1.2f)
+        }else if(currentState == EnemyState.SearchingPassive)
         {
-            // We are idle, travel to random positions nearly in hope of finding the target
-            Vector3 randomDirection = idleDefaultPosition + (Random.insideUnitSphere * searchRadius);
-            randomDirection = new Vector3(randomDirection.x, transform.position.y, randomDirection.z);
-            navMeshAgent.destination = randomDirection;
+            return;
         }
 
 
     }
-
+    private IEnumerator findNewAreas()
+    {
+        int searchCount = 0;
+        while(searchCount < maxSearchCount)
+        {
+            randomDirection = idleDefaultPosition + (Random.insideUnitSphere.normalized * searchRadius);
+            randomDirection = new Vector3(randomDirection.x, transform.position.y, randomDirection.z);
+            navMeshAgent.destination = randomDirection;
+            Debug.Log(randomDirection);
+            yield return new WaitForSeconds(serachTime);
+            searchCount++;
+        }
+        FindPassiveActivity();
+    }
+    private void FindPassiveActivity()
+    {
+        currentState = EnemyState.PassiveGoing;
+    }
     void OnDrawGizmos()
     {
         // Draw the ray in the Scene view
