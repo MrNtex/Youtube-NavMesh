@@ -31,6 +31,11 @@ public class AgentMovement : MonoBehaviour
     private int maxSearchCount = 3;
     Vector3 randomDirection;
 
+    [SerializeField]
+    private Transform[] passiveAreas;
+
+    private Transform currentPassiveArea;
+
     public EnemyState currentState;
     void Start()
     {
@@ -82,11 +87,18 @@ public class AgentMovement : MonoBehaviour
                 // We have reached the last known position, so stop searching
                 currentState = EnemyState.SearchingPassive;
                 idleDefaultPosition = transform.position;
-                StartCoroutine(findNewAreas());
+                StartCoroutine(FindPassiveActivity());
             }
         }else if(currentState == EnemyState.SearchingPassive)
         {
             return;
+        }else if(currentState == EnemyState.PassiveGoing)
+        {
+            if(Vector3.Distance(transform.position, navMeshAgent.destination) < 1.2f)
+            {
+                currentState = EnemyState.PassiveAction;
+                StartCoroutine(FindPassiveActivity(5));
+            }
         }
 
 
@@ -103,11 +115,17 @@ public class AgentMovement : MonoBehaviour
             yield return new WaitForSeconds(serachTime);
             searchCount++;
         }
-        FindPassiveActivity();
+        StartCoroutine(FindPassiveActivity(0));
     }
-    private void FindPassiveActivity()
+    private IEnumerator FindPassiveActivity(float cooldown = 0)
     {
+        yield return new WaitForSeconds(cooldown);
         currentState = EnemyState.PassiveGoing;
+
+        int rnd = Random.Range(0, passiveAreas.Length);
+        currentPassiveArea = passiveAreas[rnd];
+        navMeshAgent.destination = currentPassiveArea.position;
+
     }
     void OnDrawGizmos()
     {
