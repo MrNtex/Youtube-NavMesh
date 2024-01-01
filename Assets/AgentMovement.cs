@@ -119,7 +119,7 @@ public class AgentMovement : MonoBehaviour
         int searchCount = 0;
         while (searchCount < maxSearchCount)
         {
-            randomDirection = idleDefaultPosition + (Random.insideUnitSphere.normalized * searchRadius);
+            randomDirection = idleDefaultPosition + (Random.insideUnitSphere.normalized * Random.Range(1, searchRadius));
             randomDirection = new Vector3(randomDirection.x, transform.position.y, randomDirection.z);
             navMeshAgent.destination = randomDirection;
             yield return new WaitForSeconds(searchTime);
