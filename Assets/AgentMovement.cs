@@ -97,6 +97,10 @@ public class AgentMovement : MonoBehaviour
             }
             currentState = EnemyState.ActivelyChasing;
             Vector3 direction = target.position - transform.position;
+            if(Vector2.Angle(new Vector2(direction.x, direction.z), new Vector2(transform.forward.x, transform.forward.z)) > 90)
+            {
+                return false;
+            }
             lastRayDirection = direction;
             Ray ray = new Ray(transform.position, direction);
             RaycastHit hit;
