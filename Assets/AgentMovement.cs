@@ -4,6 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
 
+// Enum to define various states of the enemy
 public enum EnemyState
 {
     PassiveGoing,
@@ -11,77 +12,78 @@ public enum EnemyState
     ActivelyChasing,
     Searching,
     SearchingPassive,
-    meleeAttack,
+    MeleeAttack,
 }
+
 public class AgentMovement : MonoBehaviour
 {
-    private NavMeshAgent navMeshAgent;
+    private NavMeshAgent navMeshAgent; // Reference to the NavMeshAgent component
+
+    // Serialized fields allow customization in the Unity Editor
+    [SerializeField]
+    private float maxRange, meleeRange, searchRadius; // Range values for different behaviors
+    [SerializeField]
+    private Transform target; // The target the enemy will interact with
+
+    // Variables for internal use
+    private Vector3 lastRayDirection, idleDefaultPosition; // To store ray direction and default position
+    [SerializeField]
+    private float searchTime = 5; // Time to search in one direction
+    [SerializeField]
+    private int maxSearchCount = 3; // Max number of times to search
+    private Vector3 randomDirection; // Direction for random movement
 
     [SerializeField]
-    private float maxRange, meleeRange, searchRadius;
+    private Transform[] passiveAreas; // Points of interest for passive behavior
+    private Transform currentPassiveArea; // Current point of interest
 
-    [SerializeField]
-    private Transform target;
+    public EnemyState currentState; // Current state of the enemy
 
-    // To store the ray's direction for drawing Gizmos
-    private Vector3 lastRayDirection, idleDefaultPosition;
-
-    [SerializeField]
-    private float serachTime = 5;
-    [SerializeField]
-    private int maxSearchCount = 3;
-    Vector3 randomDirection;
-
-    [SerializeField]
-    private Transform[] passiveAreas;
-
-    private Transform currentPassiveArea;
-
-    public EnemyState currentState;
     void Start()
     {
         navMeshAgent = GetComponent<NavMeshAgent>();
-        idleDefaultPosition = transform.position;
+        idleDefaultPosition = transform.position; // Set the default position
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if(!CheckForTarget())
+        if (!CheckForTarget()) // Check if the target is within range
         {
             switch (currentState)
-            {   
-                case EnemyState.meleeAttack:
-                    //Debug.Log("Melee Attack");
+            {
+                case EnemyState.MeleeAttack:
+                    // Implement melee attack logic here
                     break;
                 case EnemyState.ActivelyChasing:
-                    // We have lost the target, so start searching
+                    // Switch to searching if the target is lost
                     currentState = EnemyState.Searching;
                     break;
                 case EnemyState.Searching:
-                    //Debug.Log($"Searching... {Vector3.Distance(transform.position, navMeshAgent.destination)}");
-                    // We are searching, so keep moving in the last known direction
+                    // Continue moving towards the last known position of the target
                     if (Vector3.Distance(transform.position, navMeshAgent.destination) < 1.2f)
                     {
-                        // We have reached the last known position, so stop searching
+                        // Switch to passive search after reaching the last known position
                         currentState = EnemyState.SearchingPassive;
                         idleDefaultPosition = transform.position;
                         StartCoroutine(FindNewAreas());
                     }
                     break;
                 case EnemyState.SearchingPassive:
+                    // Do nothing and return while in passive search mode (It is being handled by FindNewAreas() coroutine)
                     return;
                 case EnemyState.PassiveGoing:
+                    // Move towards a passive area
                     if (Vector3.Distance(transform.position, navMeshAgent.destination) < 1.2f)
                     {
                         currentState = EnemyState.PassiveAction;
-                        StartCoroutine(FindPassiveActivity(5));
+                        StartCoroutine(FindPassiveActivity(5)); // Start passive activity after reaching the area
                     }
                     break;
             }
         }
-
     }
+
+    // Method to check if the target is within specified ranges and within line of sight
     bool CheckForTarget()
     {
         float distance = Vector3.Distance(transform.position, target.position);
@@ -89,24 +91,20 @@ public class AgentMovement : MonoBehaviour
         {
             if (distance < meleeRange)
             {
-                currentState = EnemyState.meleeAttack;
+                currentState = EnemyState.MeleeAttack;
                 navMeshAgent.destination = transform.position;
                 return false;
             }
             currentState = EnemyState.ActivelyChasing;
-            // Create a ray from the agent to the target
             Vector3 direction = target.position - transform.position;
-            lastRayDirection = direction; // Store the direction for Gizmos
+            lastRayDirection = direction;
             Ray ray = new Ray(transform.position, direction);
             RaycastHit hit;
 
-            // Perform the raycast
             if (Physics.Raycast(ray, out hit, maxRange))
             {
-                // Check if the raycast hit the target
                 if (hit.transform == target)
                 {
-                    // Set the destination to the target's position
                     navMeshAgent.destination = target.position;
                     return true;
                 }
@@ -114,19 +112,23 @@ public class AgentMovement : MonoBehaviour
         }
         return false;
     }
+
+    // Coroutine to find new areas to search
     private IEnumerator FindNewAreas()
     {
         int searchCount = 0;
-        while(searchCount < maxSearchCount)
+        while (searchCount < maxSearchCount)
         {
             randomDirection = idleDefaultPosition + (Random.insideUnitSphere.normalized * searchRadius);
             randomDirection = new Vector3(randomDirection.x, transform.position.y, randomDirection.z);
             navMeshAgent.destination = randomDirection;
-            yield return new WaitForSeconds(serachTime);
+            yield return new WaitForSeconds(searchTime);
             searchCount++;
         }
-        StartCoroutine(FindPassiveActivity(0));
+        StartCoroutine(FindPassiveActivity(0)); // Transition to passive activity after searching
     }
+
+    // Coroutine for determining passive actions
     private IEnumerator FindPassiveActivity(float cooldown = 0)
     {
         yield return new WaitForSeconds(cooldown);
@@ -135,11 +137,11 @@ public class AgentMovement : MonoBehaviour
         int rnd = Random.Range(0, passiveAreas.Length);
         currentPassiveArea = passiveAreas[rnd];
         navMeshAgent.destination = currentPassiveArea.position;
-
     }
+
+    // Draw a ray in the Scene view for debugging
     void OnDrawGizmos()
     {
-        // Draw the ray in the Scene view
         Gizmos.color = Color.red;
         Gizmos.DrawRay(transform.position, lastRayDirection);
     }
