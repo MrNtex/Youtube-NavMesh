@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -32,6 +32,7 @@ public class AgentMovement : MonoBehaviour
     [SerializeField]
     private int maxSearchCount = 3; // Max number of times to search
     private Vector3 randomDirection; // Direction for random movement
+    private Vector3 lastKnownPosition; // Last known position of the target
 
     [SerializeField]
     private Transform[] passiveAreas; // Points of interest for passive behavior
@@ -47,8 +48,9 @@ public class AgentMovement : MonoBehaviour
 
     void Update()
     {
-        if (!CheckForTarget()) // Check if the target is within range
+        if (!CheckForTarget()) // Check if the target is within range and visible
         {
+            // If the target is not within range, consider other states
             switch (currentState)
             {
                 case EnemyState.MeleeAttack:
@@ -60,7 +62,7 @@ public class AgentMovement : MonoBehaviour
                     break;
                 case EnemyState.Searching:
                     // Continue moving towards the last known position of the target
-                    if (Vector3.Distance(transform.position, navMeshAgent.destination) < 1.2f)
+                    if (Vector3.Distance(transform.position, lastKnownPosition) < 1.2f) // navMeshAgent.destination didn't work here
                     {
                         // Switch to passive search after reaching the last known position
                         currentState = EnemyState.SearchingPassive;
@@ -84,6 +86,7 @@ public class AgentMovement : MonoBehaviour
     }
 
     // Method to check if the target is within specified ranges and within line of sight
+    // (true if the target is within range and visible)
     bool CheckForTarget()
     {
         float distance = Vector3.Distance(transform.position, target.position);
@@ -96,7 +99,9 @@ public class AgentMovement : MonoBehaviour
                 return false;
             }
             currentState = EnemyState.ActivelyChasing;
+            // Check if the target is within the field of view
             Vector3 direction = target.position - transform.position;
+            // If the angle between the forward vector of the enemy and the direction to the target is greater than 90 degrees, the target is not within the field of view
             if(Vector2.Angle(new Vector2(direction.x, direction.z), new Vector2(transform.forward.x, transform.forward.z)) > 90)
             {
                 return false;
@@ -110,6 +115,9 @@ public class AgentMovement : MonoBehaviour
                 if (hit.transform == target)
                 {
                     navMeshAgent.destination = target.position;
+
+                    // Save that position for later
+                    lastKnownPosition = target.position;
                     return true;
                 }
             }
