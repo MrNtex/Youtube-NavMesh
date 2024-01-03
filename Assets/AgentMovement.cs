@@ -107,7 +107,7 @@ public class AgentMovement : MonoBehaviour
                 return false;
             }
             lastRayDirection = direction;
-            Ray ray = new Ray(transform.position, direction);
+            Ray ray = new Ray(transform.position, direction); // Using Ray is the same as later using Physics.Raycast(transform.position, direction, maxRange)
             RaycastHit hit;
 
             if (Physics.Raycast(ray, out hit, maxRange))
