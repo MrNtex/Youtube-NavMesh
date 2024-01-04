@@ -98,7 +98,7 @@ public class AgentMovement : MonoBehaviour
                 navMeshAgent.destination = transform.position;
                 return false;
             }
-            currentState = EnemyState.ActivelyChasing;
+            
             // Check if the target is within the field of view
             Vector3 direction = target.position - transform.position;
             // If the angle between the forward vector of the enemy and the direction to the target is greater than 90 degrees, the target is not within the field of view
@@ -110,7 +110,7 @@ public class AgentMovement : MonoBehaviour
             Ray ray = new Ray(transform.position, direction); // Using Ray is the same as later using Physics.Raycast(transform.position, direction, maxRange)
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, maxRange))
+            if (Physics.Raycast(transform.position, direction, out hit, maxRange))
             {
                 if (hit.transform == target)
                 {
@@ -118,6 +118,8 @@ public class AgentMovement : MonoBehaviour
 
                     // Save that position for later
                     lastKnownPosition = target.position;
+
+                    currentState = EnemyState.ActivelyChasing;
                     return true;
                 }
             }
